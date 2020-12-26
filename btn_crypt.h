@@ -2,6 +2,7 @@
 // Email: westleyr@nym.hush.com
 // Url: https://github.com/WestleyR/btn-crypt
 // Last modified date: 2020-12-25
+// See: BTN_CRYPT_VERSION for the current version.
 //
 // This file is licensed under the terms of
 //
@@ -34,17 +35,14 @@ Init release.
 
 */
 
-/*
- * TODO LIST:
- *  - [ ] should check if the file is already encrypted before encrypting it
- *
- */
-
 #include <stdio.h>
+
+// The btn_crypt.h version
+#define BTN_CRYPT_VERSION "0.1.0"
 
 // The BTN header
 typedef struct {
-  char btn_magic[9];
+  char btn_magic[10];
   char btn_version[12];
   char btn_encrypted_date[24];
   char btn_message[24];
@@ -53,12 +51,13 @@ typedef struct {
   long long btn_data_end;
 } btn_header;
 
-const static char BTN_MAGIC[] = "BTN_CRYPT";
+const static char BTN_MAGIC[] = "BTN_CRYPT\0";
 const static char BTN_VERSION[] = "0.1.0";
 
 int btn_encrypt(const char* input_file, unsigned int password);
 int btn_decrypt(const char* file_name, unsigned int password);
 unsigned int btn_password_from_string(const char* password_str, int password_len);
+int btn_strcmp(const char* str1, const char* str2);
 
 #ifdef BTN_CRYPT_IMPLEMENTATION
 // The implementation
@@ -73,12 +72,60 @@ unsigned int btn_password_from_string(const char* password_str, int password_len
   return ret;
 }
 
+int btn_read_header(btn_header* header, FILE* btn_fp) {
+  if (btn_fp == NULL) {
+    fprintf(stderr, "%s(): non-valid image pointer\n", __func__);
+    return -1;
+  }
+
+  // Get file poststion before reading, so we can put it back there.
+  long int before_p = ftell(btn_fp);
+
+  fread(&*header, sizeof(*header), 1, btn_fp);
+
+  // Return it to the original spot
+  fseek(btn_fp, before_p, SEEK_SET);
+
+  return 0;
+}
+
+// btn_is_file_encrypted checks for the btn header, if valid, then
+// the file is encrypted.
+int btn_is_file_encrypted(FILE* file_fp) {
+  if (file_fp == NULL) {
+    return -1;
+  }
+
+  btn_header header;
+  btn_read_header(&header, file_fp);
+
+  if (btn_strcmp(header.btn_magic, BTN_MAGIC) == 0) {
+    // Valid header magic
+    return 0;
+  }
+
+  return 1;
+}
+
 int btn_encrypt(const char* input_file, unsigned int password) {
+  // First check if the file is already encrypted
+  FILE* input_fp = fopen(input_file, "rb");
+  if (input_fp == NULL) {
+    perror(__func__);
+    return -1;
+  }
+  if (btn_is_file_encrypted(input_fp) == 0) {
+    // File is already encrypted
+    fclose(input_fp);
+    fprintf(stderr, "%s(): file is already encrypted\n", __func__);
+    return -1;
+  }
+  fclose(input_fp);
 
   btn_header header;
 
   // Set the BTN magic header and version
-  memcpy(header.btn_magic, BTN_MAGIC, 9); // 9 bytes for the header identifier
+  memcpy(header.btn_magic, BTN_MAGIC, 10); // 10 bytes for the header identifier
   strcpy(header.btn_version, BTN_VERSION);
   strcpy(header.btn_message, "");
 
@@ -233,6 +280,25 @@ int btn_decrypt(const char* file_name, unsigned int password) {
 
   return 0;
 }
+
+//*******************
+// Internal functions
+//*******************
+
+size_t btn_strlen(const char* str) {
+  const char *c;
+  for (c = str; *c; ++c);
+  return (c - str);
+}
+
+int btn_strcmp(const char* str1, const char* str2) {
+  while(*str1 && (*str1 == *str2)) {
+    str1++;
+    str2++;
+  }
+  return *(const unsigned char*)str1 - *(const unsigned char*)str2;
+}
+
 
 #endif
 
