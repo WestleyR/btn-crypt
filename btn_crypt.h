@@ -202,10 +202,10 @@ int btn_decrypt(const char* file_name, unsigned int password) {
     return 0;
   }
 
-	FILE* tmp_fp = fopen("/tmp/tmp.txt", "w");
-    if (tmp_fp == NULL) {
-        return 0;
-	}
+  FILE* tmp_fp = fopen("/tmp/tmp.txt", "w");
+  if (tmp_fp == NULL) {
+    return -1;
+  }
 
   int ch = fgetc(to_decrypt_fp);
   while (ch != EOF) {
@@ -219,19 +219,19 @@ int btn_decrypt(const char* file_name, unsigned int password) {
 
 
   // Now write back the decrypted file back to the original name
-	to_decrypt_fp = fopen(file_name, "w");
-	tmp_fp = fopen("/tmp/tmp.txt", "r");
+  to_decrypt_fp = fopen(file_name, "w");
+  tmp_fp = fopen("/tmp/tmp.txt", "r");
 
-	ch = fgetc(tmp_fp);
-	while (ch != EOF) {
-	  fputc(ch, to_decrypt_fp);
-	  ch = fgetc(tmp_fp);
+  ch = fgetc(tmp_fp);
+  while (ch != EOF) {
+    fputc(ch, to_decrypt_fp);
+    ch = fgetc(tmp_fp);
   }
 
   fclose(to_decrypt_fp);
   fclose(tmp_fp);
 
-	return 0;
+  return 0;
 }
 
 #endif
