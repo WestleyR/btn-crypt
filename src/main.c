@@ -1,12 +1,13 @@
-// created by: WestleyR
-// email: westleyr@nym.hush.com
-// https://github.com/WestleyR/???
-// date: Nov 9, 2019
-// version-1.0.0
+// Created by: WestleyR
+// Email: westleyr@nym.hush.com
+// Url: https://github.com/WestleyR/btn-crypt
+// Last modified date: 2020-12-27
+//
+// This file is licensed under the terms of
 //
 // The Clear BSD License
 //
-// Copyright (c) 2019 WestleyR
+// Copyright (c) 2020 WestleyR
 // All rights reserved.
 //
 // This software is licensed under a Clear BSD License.
@@ -91,7 +92,12 @@ int main(int argc, char** argv) {
     }
 
 	unsigned int password_int = btn_password_from_string(password, strlen(password));
-//	printf("HELLOWLRD: %u\n", foo);
+	if (password_int == 0) {
+	  // Failed to generate the password
+	  fprintf(stderr, "%s: %s(): Failed to generate a password.\n", __FILE__, __func__);
+	  return 1;
+    }
+	//printf("HELLOWLRD: %u\n", password_int);
 
     for (int i = optind; i < argc; i++) {
 	  if (encrypt_file == 1) {

@@ -1,7 +1,7 @@
 // Created by: WestleyR
 // Email: westleyr@nym.hush.com
 // Url: https://github.com/WestleyR/btn-crypt
-// Last modified date: 2020-12-25
+// Last modified date: 2020-12-26
 // See: BTN_CRYPT_VERSION for the current version.
 //
 // This file is licensed under the terms of
@@ -30,7 +30,7 @@
 
 # CHANGELOG
 
-### v1.0.0 - 2020-12-25 (yet to be released)
+### v1.0.0 - 2020-12-26 (yet to be released)
 Init release.
 
 */
@@ -66,7 +66,7 @@ unsigned int btn_password_from_string(const char* password_str, int password_len
   unsigned int ret = 0;
 
   for (int i = 0; i < password_len; i++) {
-    ret += password_str[i];
+    ret = (ret * 10) + password_str[i];
   }
 
   return ret;
@@ -147,6 +147,13 @@ int btn_encrypt(const char* input_file, unsigned int password) {
   // Encrypt the file to a tmp file
   unsigned int ch = fgetc(to_encrypt_fp);
   while (ch != EOF) {
+      // Check if the password + the char is grader then the unsigend int
+      // max value. (I think this is the max value...)
+      if (ch + password > 1073741824) {
+          fprintf(stderr, "%s: %s(): password too long, exeeded 1073741824.\n", __FILE__, __func__);
+          printf("char=%u; psk=%u\n", ch, password);
+          return -1;
+      }
       ch = ch + password;
       fputc(ch, tmp_fp);
       ch = fgetc(to_encrypt_fp);
