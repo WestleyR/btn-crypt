@@ -1,7 +1,7 @@
 // Created by: WestleyR
 // Email: westleyr@nym.hush.com
 // Url: https://github.com/WestleyR/btn-crypt
-// Last modified date: 2020-12-26
+// Last modified date: 2020-12-28
 // See: BTN_CRYPT_VERSION for the current version.
 //
 // This file is licensed under the terms of
@@ -18,27 +18,40 @@
 
   BTN crypt - better-than-nothing encryption/decryption
 
-  This file provides a higher level basic and fast encryption for
+  This single file provides a high-ish level basic and fast encryption for
   small C programs.
+
+  Key features:
+    - Only one dependence, stdio.h
+    - Only one source file (this header includes the implementation)
+    - Simple easy interface
 
 # How to use
 
   Define this:
     #define BTN_CRYPT_IMPLEMENTATION
-  before including this in **one** of your C source files to create the implementation.
+  before including this header file in **one** of your C source
+  files to create the implementation.
 
 
 # CHANGELOG
 
-### v1.0.0 - 2020-12-26 (yet to be released)
+### v1.0.0 - 2020-12-28 (yet to be released)
 Init release.
+
+
+# Contributors
+ - WestleyR <westleyr@nym.hush.com>
+
+# TODO:
+ - [ ] Should be able to define the tmp dir
 
 */
 
 #include <stdio.h>
 
-// The btn_crypt.h version
-#define BTN_CRYPT_VERSION "0.1.0"
+// The btn_crypt.h version for this file and functions.
+#define BTN_CRYPT_VERSION "1.0.0"
 
 // The BTN header
 typedef struct {
@@ -51,16 +64,31 @@ typedef struct {
   long long btn_data_end;
 } btn_header;
 
-const static char BTN_MAGIC[] = "BTN_CRYPT\0";
-const static char BTN_VERSION[] = "0.1.0";
+// The BTN header version, not the same as BTN_CRYPT_VERSION.
+const static char BTN_VERSION[] = "1.0.0\0";
 
+// The BTN header identifier, this should never change
+const static char BTN_MAGIC[] = "BTN_CRYPT\0";
+
+//****************
+// Crypt functions
+//****************
 int btn_encrypt(const char* input_file, unsigned int password);
 int btn_decrypt(const char* file_name, unsigned int password);
 unsigned int btn_password_from_string(const char* password_str, int password_len);
-int btn_strcmp(const char* str1, const char* str2);
 
-#ifdef BTN_CRYPT_IMPLEMENTATION
+//***********************************************
+// Internal functions, but you can also use them
+//***********************************************
+int btn_strcmp(const char* str1, const char* str2);
+void btn_memcpy(void *dest, const void *src, size_t n);
+// btn_strcpy will copy src to dest. src should be a null terminated string.
+char* btn_strcpy(char* dest, const char* src);
+
+//*******************
 // The implementation
+//*******************
+#ifdef BTN_CRYPT_IMPLEMENTATION
 
 unsigned int btn_password_from_string(const char* password_str, int password_len) {
   unsigned int ret = 0;
@@ -125,9 +153,9 @@ int btn_encrypt(const char* input_file, unsigned int password) {
   btn_header header;
 
   // Set the BTN magic header and version
-  memcpy(header.btn_magic, BTN_MAGIC, 10); // 10 bytes for the header identifier
-  strcpy(header.btn_version, BTN_VERSION);
-  strcpy(header.btn_message, "");
+  btn_memcpy(header.btn_magic, BTN_MAGIC, 10); // 10 bytes for the header identifier
+  btn_strcpy(header.btn_version, BTN_VERSION);
+  btn_strcpy(header.btn_message, "");
 
   // Now save the password key to the header (as unsigend int)
   // this _should not_ be visible in the header.
@@ -306,6 +334,31 @@ int btn_strcmp(const char* str1, const char* str2) {
   return *(const unsigned char*)str1 - *(const unsigned char*)str2;
 }
 
+void btn_memcpy(void *dest, const void *src, size_t n) {
+  char *csrc = (char *)src;
+  char *cdest = (char *)dest;
+
+  for (int i = 0; i < n; i++) {
+    cdest[i] = csrc[i];
+  }
+}
+
+char* btn_strcpy(char* dest, const char* src) {
+  if (dest == NULL) {
+    return NULL;
+  }
+  char *ptr = dest;
+
+  while (*src != '\0') {
+    *dest = *src;
+    dest++;
+    src++;
+  }
+
+  *dest = '\0';
+
+  return ptr;
+}
 
 #endif
 
