@@ -1,7 +1,7 @@
 // Created by: WestleyR
 // Email: westleyr@nym.hush.com
 // Url: https://github.com/WestleyR/btn-crypt
-// Last modified date: 2020-12-28
+// Last modified date: 2020-12-29
 // See: BTN_CRYPT_VERSION for the current version.
 //
 // This file is licensed under the terms of
@@ -41,7 +41,7 @@
 
 # CHANGELOG
 
-### v1.0.0 - 2020-12-28 (yet to be released)
+### v1.0.0 - 2020-12-29 (yet to be released)
 Init release.
 
 
@@ -51,6 +51,7 @@ Init release.
 # TODO:
  - [ ] Should be able to define the tmp dir
  - [ ] Add force flag to decrypt file, like if version missmatch, or data corrupt
+ - [x] Should decrypt file while writting to tmp file (right after reading header)
 
 */
 
@@ -286,14 +287,15 @@ int btn_decrypt(const char* file_name, unsigned int password) {
   FILE* output_stream = fopen("/tmp/btn-decrypt.btn", "wb");
 
 #ifndef BTN_NO_PRINT_PROG
-  printf("%s(): Writting data to output...\n", __func__);
+  printf("%s(): Writting and decrypting data...\n", __func__);
 #endif
 
-  // Dump the encrypted data to a tmp file
+  // Dump and decrypt the encrypted data to a tmp file
   fseek(to_decrypt_fp, buffer.btn_data_start, SEEK_SET);
   int b = fgetc(to_decrypt_fp);
   while (b != EOF) {
     // write to output file
+    b = b - password;
     fputc(b, output_stream);
     dump_size++; // Count the size, so we can check later
 
@@ -304,38 +306,13 @@ int btn_decrypt(const char* file_name, unsigned int password) {
     b = fgetc(to_decrypt_fp);
   }
   fclose(output_stream);
+  fclose(to_decrypt_fp);
 
   // Check the end, make sure its all there.
   if (dump_size != (buffer.btn_data_end - buffer.btn_data_start)) {
     fprintf(stderr, "%s(): ERROR: file missing end! data corrupt. Missing %llu bytes\n", __func__, dump_size - (buffer.btn_data_end - buffer.btn_data_start));
-    fclose(to_decrypt_fp);
     return -1;
   }
-  fclose(to_decrypt_fp);
-
-  to_decrypt_fp = fopen("/tmp/btn-decrypt.btn", "rb");
-  if (to_decrypt_fp == NULL) {
-    return 0;
-  }
-
-  FILE* tmp_fp = fopen("/tmp/tmp.txt", "w");
-  if (tmp_fp == NULL) {
-    return -1;
-  }
-
-#ifndef BTN_NO_PRINT_PROG
-  printf("%s(): Decrypting data...\n", __func__);
-#endif
-
-  int ch = fgetc(to_decrypt_fp);
-  while (ch != EOF) {
-    ch = ch - password;
-    fputc(ch, tmp_fp);
-    ch = fgetc(to_decrypt_fp);
-  }
-
-  fclose(to_decrypt_fp);
-  fclose(tmp_fp);
 
 #ifndef BTN_NO_PRINT_PROG
   printf("%s(): Writting output file...\n", __func__);
@@ -343,9 +320,9 @@ int btn_decrypt(const char* file_name, unsigned int password) {
 
   // Now write back the decrypted file back to the original name
   to_decrypt_fp = fopen(file_name, "w");
-  tmp_fp = fopen("/tmp/tmp.txt", "rb");
+  FILE* tmp_fp = fopen("/tmp/btn-decrypt.btn", "rb");
 
-  ch = fgetc(tmp_fp);
+  int ch = fgetc(tmp_fp);
   while (ch != EOF) {
     fputc(ch, to_decrypt_fp);
     ch = fgetc(tmp_fp);
