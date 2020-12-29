@@ -229,14 +229,19 @@ int btn_encrypt(const char* input_file, unsigned int password) {
   return 0;
 }
 
+// btn_decrypt is the main decrypt function.
 int btn_decrypt(const char* file_name, unsigned int password) {
+  // First, open the file to decrypt
   FILE* to_decrypt_fp = fopen(file_name, "rb");
   if (to_decrypt_fp == NULL) {
     return 1;
   }
 
+  // Read the header
   btn_header buffer;
   fread(&buffer, sizeof(buffer), 1, to_decrypt_fp);
+
+  // TODO: should check the header before decrypting it
 
   // Check if theres data before
   if ((buffer.btn_data_end - buffer.btn_data_start) == 0) {
@@ -254,6 +259,8 @@ int btn_decrypt(const char* file_name, unsigned int password) {
   // Open the outout stream
   FILE* output_stream = fopen("/tmp/btn-decrypt.btn", "wb");
 
+  printf("Writting data to output...\n");
+
   // Print the image data
   fseek(to_decrypt_fp, buffer.btn_data_start, SEEK_SET);
   int b = fgetc(to_decrypt_fp);
@@ -261,12 +268,12 @@ int btn_decrypt(const char* file_name, unsigned int password) {
     // write to output file
     fputc(b, output_stream);
     dump_size++; // Count the size, so we can check later
-    b = fgetc(to_decrypt_fp);
 
     // Stop when reached the end of that data block
-    if (ftell(to_decrypt_fp) > buffer.btn_data_end) {
+    if (dump_size > (buffer.btn_data_end - buffer.btn_data_start)) {
       break;
     }
+    b = fgetc(to_decrypt_fp);
   }
   fclose(output_stream);
 
@@ -275,9 +282,7 @@ int btn_decrypt(const char* file_name, unsigned int password) {
     printf("%ld -> %llu\n", dump_size, buffer.btn_data_end - buffer.btn_data_start);
     printf("ERROR: file missing end! data corrupt\n");
   }
-
   fclose(to_decrypt_fp);
-
 
   to_decrypt_fp = fopen("/tmp/btn-decrypt.btn", "rb");
   if (to_decrypt_fp == NULL) {
@@ -288,6 +293,8 @@ int btn_decrypt(const char* file_name, unsigned int password) {
   if (tmp_fp == NULL) {
     return -1;
   }
+
+  printf("Decrypting data...\n");
 
   int ch = fgetc(to_decrypt_fp);
   while (ch != EOF) {
