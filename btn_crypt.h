@@ -307,9 +307,11 @@ int btn_decrypt(const char* file_name, unsigned int password) {
   fclose(tmp_fp);
 
 
+  printf("Writting output file...\n");
+
   // Now write back the decrypted file back to the original name
   to_decrypt_fp = fopen(file_name, "w");
-  tmp_fp = fopen("/tmp/tmp.txt", "r");
+  tmp_fp = fopen("/tmp/tmp.txt", "rb");
 
   ch = fgetc(tmp_fp);
   while (ch != EOF) {
