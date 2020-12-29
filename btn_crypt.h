@@ -33,6 +33,11 @@
   before including this header file in **one** of your C source
   files to create the implementation.
 
+# Build options
+
+  By defining BTN_NO_PRINT_PROG (before including this file) there
+  will be no progress printed to stdout.
+
 
 # CHANGELOG
 
@@ -45,6 +50,7 @@ Init release.
 
 # TODO:
  - [ ] Should be able to define the tmp dir
+ - [ ] Add force flag to decrypt file, like if version missmatch, or data corrupt
 
 */
 
@@ -167,6 +173,10 @@ int btn_encrypt(const char* input_file, unsigned int password) {
       return -1;
   }
 
+#ifndef BTN_NO_PRINT_PROG
+  printf("%s(): encrypting: %s...\n", __func__, input_file);
+#endif
+
   FILE* tmp_fp = fopen("/tmp/btn_encrypt.btn", "wb");
   if (tmp_fp == NULL) {
       return -1;
@@ -193,6 +203,10 @@ int btn_encrypt(const char* input_file, unsigned int password) {
   // Now read the data len of the encrypted data
   // TODO: this should be called the input file fp
   FILE* thumbnail_fp = fopen("/tmp/btn_encrypt.btn", "rb");
+
+#ifndef BTN_NO_PRINT_PROG
+  printf("%s(): Creating BTN header and data partition...\n", __func__);
+#endif
 
   long data_len = 0;
   // Get file poststion before reading, so we can put it back there.
@@ -224,7 +238,9 @@ int btn_encrypt(const char* input_file, unsigned int password) {
 
   fclose(btn_file);
 
-  printf("Done\n");
+#ifndef BTN_NO_PRINT_PROG
+  printf("%s(): %s successfully encrypted\n", __func__, input_file);
+#endif
 
   return 0;
 }
@@ -241,7 +257,17 @@ int btn_decrypt(const char* file_name, unsigned int password) {
   btn_header buffer;
   fread(&buffer, sizeof(buffer), 1, to_decrypt_fp);
 
-  // TODO: should check the header before decrypting it
+  // Check to see if the file is actrally a btn header/data
+  if (btn_strcmp(buffer.btn_magic, BTN_MAGIC) != 0) {
+    fprintf(stderr, "%s(): Invalid BTN header. Expecting: %s; got: %s\n", __func__, BTN_MAGIC, buffer.btn_magic);
+    return -1;
+  }
+
+  // Now check the encryption version
+  if (btn_strcmp(buffer.btn_version, BTN_VERSION) != 0) {
+    fprintf(stderr, "%s(): Invalid encryption version. Expecting: %s; got: %s\n", __func__, BTN_VERSION, buffer.btn_version);
+    return -1;
+  }
 
   // Check if theres data before
   if ((buffer.btn_data_end - buffer.btn_data_start) == 0) {
@@ -259,9 +285,11 @@ int btn_decrypt(const char* file_name, unsigned int password) {
   // Open the outout stream
   FILE* output_stream = fopen("/tmp/btn-decrypt.btn", "wb");
 
-  printf("Writting data to output...\n");
+#ifndef BTN_NO_PRINT_PROG
+  printf("%s(): Writting data to output...\n", __func__);
+#endif
 
-  // Print the image data
+  // Dump the encrypted data to a tmp file
   fseek(to_decrypt_fp, buffer.btn_data_start, SEEK_SET);
   int b = fgetc(to_decrypt_fp);
   while (b != EOF) {
@@ -279,8 +307,9 @@ int btn_decrypt(const char* file_name, unsigned int password) {
 
   // Check the end, make sure its all there.
   if (dump_size != (buffer.btn_data_end - buffer.btn_data_start)) {
-    printf("%ld -> %llu\n", dump_size, buffer.btn_data_end - buffer.btn_data_start);
-    printf("ERROR: file missing end! data corrupt\n");
+    fprintf(stderr, "%s(): ERROR: file missing end! data corrupt. Missing %llu bytes\n", __func__, dump_size - (buffer.btn_data_end - buffer.btn_data_start));
+    fclose(to_decrypt_fp);
+    return -1;
   }
   fclose(to_decrypt_fp);
 
@@ -294,7 +323,9 @@ int btn_decrypt(const char* file_name, unsigned int password) {
     return -1;
   }
 
-  printf("Decrypting data...\n");
+#ifndef BTN_NO_PRINT_PROG
+  printf("%s(): Decrypting data...\n", __func__);
+#endif
 
   int ch = fgetc(to_decrypt_fp);
   while (ch != EOF) {
@@ -306,8 +337,9 @@ int btn_decrypt(const char* file_name, unsigned int password) {
   fclose(to_decrypt_fp);
   fclose(tmp_fp);
 
-
-  printf("Writting output file...\n");
+#ifndef BTN_NO_PRINT_PROG
+  printf("%s(): Writting output file...\n", __func__);
+#endif
 
   // Now write back the decrypted file back to the original name
   to_decrypt_fp = fopen(file_name, "w");
@@ -321,6 +353,10 @@ int btn_decrypt(const char* file_name, unsigned int password) {
 
   fclose(to_decrypt_fp);
   fclose(tmp_fp);
+
+#ifndef BTN_NO_PRINT_PROG
+  printf("%s(): %s successfully decrypted\n", __func__, file_name);
+#endif
 
   return 0;
 }

@@ -1,7 +1,7 @@
 // Created by: WestleyR
 // Email: westleyr@nym.hush.com
 // Url: https://github.com/WestleyR/btn-crypt
-// Last modified date: 2020-12-27
+// Last modified date: 2020-12-28
 //
 // This file is licensed under the terms of
 //
@@ -101,12 +101,12 @@ int main(int argc, char** argv) {
 
     for (int i = optind; i < argc; i++) {
 	  if (encrypt_file == 1) {
-	    if (btn_encrypt(argv[i], password_int) == 0) {
-            printf("%s: %s successfully encrypted\n", argv[0], argv[i]);
+	    if (btn_encrypt(argv[i], password_int) != 0) {
+            printf("%s: %s failed to encrypt encrypted\n", argv[0], argv[i]);
         }
 	  } else if (decrypt_file == 1) {
-	    if (btn_decrypt(argv[i], password_int) == 0) {
-            printf("%s: %s successfully decrypted\n", argv[0], argv[i]);
+	    if (btn_decrypt(argv[i], password_int) != 0) {
+            printf("%s: %s failed to decrypted\n", argv[0], argv[i]);
         }
 	  }
     }
