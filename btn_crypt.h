@@ -52,6 +52,7 @@ Init release.
  - [ ] Should be able to define the tmp dir
  - [ ] Add force flag to decrypt file, like if version missmatch, or data corrupt
  - [x] Should decrypt file while writting to tmp file (right after reading header)
+ - [ ] Refactor the code
 
 */
 
@@ -144,18 +145,20 @@ int btn_is_file_encrypted(FILE* file_fp) {
 
 int btn_encrypt(const char* input_file, unsigned int password) {
   // First check if the file is already encrypted
-  FILE* input_fp = fopen(input_file, "rb");
-  if (input_fp == NULL) {
-    perror(__func__);
+  FILE* file_to_encrypt_fp = fopen(input_file, "rb");
+  if (file_to_encrypt_fp == NULL) {
+    perror(input_file);
     return -1;
   }
-  if (btn_is_file_encrypted(input_fp) == 0) {
+
+  // Check if its already encrypted. The file pointer is
+  // also returned to its original spot when its complete.
+  if (btn_is_file_encrypted(file_to_encrypt_fp) == 0) {
     // File is already encrypted
-    fclose(input_fp);
+    fclose(file_to_encrypt_fp);
     fprintf(stderr, "%s(): file is already encrypted\n", __func__);
     return -1;
   }
-  fclose(input_fp);
 
   btn_header header;
 
@@ -168,25 +171,21 @@ int btn_encrypt(const char* input_file, unsigned int password) {
   // this _should not_ be visible in the header.
   header.btn_key = password;
 
-  // Now encrypt the file to a tmp file
-  FILE* to_encrypt_fp = fopen(input_file, "r");
-  if (to_encrypt_fp == NULL) {
-      return -1;
-  }
-
 #ifndef BTN_NO_PRINT_PROG
   printf("%s(): encrypting: %s...\n", __func__, input_file);
 #endif
 
-  FILE* tmp_fp = fopen("/tmp/btn_encrypt.btn", "wb");
-  if (tmp_fp == NULL) {
+  // Now encrypt the file to a tmp file
+  FILE* tmp_encrypted_fp = fopen("/tmp/btn_encrypt.btn", "wb");
+  if (tmp_encrypted_fp == NULL) {
       return -1;
   }
 
-  // Encrypt the file to a tmp file
-  unsigned int ch = fgetc(to_encrypt_fp);
+  // Encrypt the file to a tmp file. Also count the data length.
+  long data_len = 0;
+  unsigned int ch = fgetc(file_to_encrypt_fp);
   while (ch != EOF) {
-      // Check if the password + the char is grader then the unsigend int
+      // Check if the password + the char is greater then the unsigend int
       // max value. (I think this is the max value...)
       if (ch + password > 1073741824) {
           fprintf(stderr, "%s: %s(): password too long, exeeded 1073741824.\n", __FILE__, __func__);
@@ -194,50 +193,44 @@ int btn_encrypt(const char* input_file, unsigned int password) {
           return -1;
       }
       ch = ch + password;
-      fputc(ch, tmp_fp);
-      ch = fgetc(to_encrypt_fp);
+      fputc(ch, tmp_encrypted_fp);
+      ch = fgetc(file_to_encrypt_fp);
+      data_len++;
   }
 
-  fclose(tmp_fp);
-  fclose(to_encrypt_fp);
-
-  // Now read the data len of the encrypted data
-  // TODO: this should be called the input file fp
-  FILE* thumbnail_fp = fopen("/tmp/btn_encrypt.btn", "rb");
+  fclose(tmp_encrypted_fp);
+  fclose(file_to_encrypt_fp);
 
 #ifndef BTN_NO_PRINT_PROG
   printf("%s(): Creating BTN header and data partition...\n", __func__);
 #endif
 
-  long data_len = 0;
-  // Get file poststion before reading, so we can put it back there.
-  // Now read the file
-  int c = fgetc(thumbnail_fp);
-  while (c != EOF) {
-    data_len++;
-    c = fgetc(thumbnail_fp);
-  }
-  fclose(thumbnail_fp);
-
   // Set the encrypted data start and stop
   header.btn_data_start = sizeof(header);
   header.btn_data_end = header.btn_data_start + data_len;
 
-  FILE* btn_file = fopen(input_file, "wb");
+  // Finally, open the final destination file to write
+  // the header and encrypted data.
+  file_to_encrypt_fp = fopen(input_file, "wb");
 
   // Write the header
-  fwrite(&header, sizeof(header), 1, btn_file);
+  fwrite(&header, sizeof(header), 1, file_to_encrypt_fp);
 
+  // We do not need to seek to the btn_data_start, since we
+  // just finished writting the header to the file, and the
+  // file pointer is moved to the currect spot.
+
+  // Open the encrypted tmp data file, and copy it to the final file
+  tmp_encrypted_fp = fopen("/tmp/btn_encrypt.btn", "rb");
+  unsigned int e = fgetc(tmp_encrypted_fp);
   // Now write the encrypted data
-  fseek(btn_file, header.btn_data_start, SEEK_SET);
-  FILE* encrypted_data_fp = fopen("/tmp/btn_encrypt.btn", "rb");
-  int e = fgetc(encrypted_data_fp);
   while (e != EOF) {
-    fputc(e, btn_file);
-    e = fgetc(encrypted_data_fp);
+    fputc(e, file_to_encrypt_fp);
+    e = fgetc(tmp_encrypted_fp);
   }
 
-  fclose(btn_file);
+  fclose(file_to_encrypt_fp);
+  fclose(tmp_encrypted_fp);
 
 #ifndef BTN_NO_PRINT_PROG
   printf("%s(): %s successfully encrypted\n", __func__, input_file);
