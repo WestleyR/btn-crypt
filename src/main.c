@@ -1,7 +1,7 @@
 // Created by: WestleyR
 // Email: westleyr@nym.hush.com
 // Url: https://github.com/WestleyR/btn-crypt
-// Last modified date: 2020-12-28
+// Last modified date: 2020-12-29
 //
 // This file is licensed under the terms of
 //
@@ -21,9 +21,16 @@
 #define BTN_CRYPT_IMPLEMENTATION
 #include "btn_crypt.h"
 
+void print_version() {
+  printf("CLI version: 1.0.0\n");
+  printf("BTN_CRYPT version: %s\n", BTN_CRYPT_VERSION);
+}
+
+void print_usage(const char* program_name) {
+  printf("  %s [--encrypt,--decrypt] [-p password] input-file\n", program_name);
+}
+
 int main(int argc, char** argv) {
-
-
   int encrypt_file = 0;
   int decrypt_file = 0;
   char* password;
@@ -55,11 +62,11 @@ int main(int argc, char** argv) {
         break;
 
       case 'V':
-        //print_version();
+        print_version();
         return(0);
 
       case 'h':
-        //print_usage(argv[0]);
+        print_usage(argv[0]);
         return(0);
 
       default:
@@ -70,7 +77,8 @@ int main(int argc, char** argv) {
   // Make sure all the options are valid
   int i = encrypt_file + decrypt_file;
   if (i == 0) {
-    printf("No action\n");
+    // No action, print the help menu
+	print_usage(argv[0]);
     return 1;
   }
   if (i > 1) {
@@ -87,7 +95,7 @@ int main(int argc, char** argv) {
     }
 
 	if (password == NULL) {
-	  fprintf(stderr, "%s: password is empty\n", argv[0]);
+	  fprintf(stderr, "%s: password is empty. Please use: --password=psk123\n", argv[0]);
 	  return 1;
     }
 
@@ -111,7 +119,7 @@ int main(int argc, char** argv) {
 	  }
     }
   } else {
-    printf("No files passed\n");
+    fprintf(stderr, "%s: need an input file\n", argv[0]);
     return 1;
   }
 
