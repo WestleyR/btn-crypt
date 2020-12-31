@@ -15,7 +15,6 @@
 //
 
 /*
-
   BTN crypt - better-than-nothing encryption/decryption
 
   This single file provides a high level basic and fast encryption
@@ -57,6 +56,7 @@ Init release.
  - [x] Should decrypt file while writting to tmp file (right after reading header)
  - [x] Refactor the code
  - [ ] btn_password_from_string() should automaticly get the string size, instead of passing it
+ - [ ] Maybe should just use string.h instead of own imitation
 
 */
 
