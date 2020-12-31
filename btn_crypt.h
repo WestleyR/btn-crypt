@@ -18,11 +18,11 @@
 
   BTN crypt - better-than-nothing encryption/decryption
 
-  This single file provides a high-ish level basic and fast encryption for
-  small C programs.
+  This single file provides a high level basic and fast encryption
+  for C programs.
 
   Key features:
-    - Only one dependence, stdio.h
+    - Only one dependence; stdio.h
     - Only one source file (this header includes the implementation)
     - Simple easy interface
 
@@ -30,12 +30,15 @@
 
   Define this:
     #define BTN_CRYPT_IMPLEMENTATION
+
   before including this header file in **one** of your C source
   files to create the implementation.
 
 # Build options
 
-  By defining BTN_NO_PRINT_PROG (before including this file) there
+  By adding:
+    #define BTN_NO_PRINT_PROG
+  (before including this file) there
   will be no progress printed to stdout.
 
 
@@ -52,7 +55,8 @@ Init release.
  - [ ] Should be able to define the tmp dir
  - [ ] Add force flag to decrypt file, like if version missmatch, or data corrupt
  - [x] Should decrypt file while writting to tmp file (right after reading header)
- - [ ] Refactor the code
+ - [x] Refactor the code
+ - [ ] btn_password_from_string() should automaticly get the string size, instead of passing it
 
 */
 
@@ -84,15 +88,29 @@ const static char BTN_MAGIC[] = "BTN_CRYPT\0";
 //****************
 // Crypt functions
 //****************
+
+// btn_encrypt is the main encrypt function. By passing the input file
+// path and a password number, the file will be encrypted. The password
+// number can be generated from a string by the btn_password_from_string()
+// function.
 int btn_encrypt(const char* input_file, unsigned int password);
+
+// btn_decrypt is the main decrypting function.
 int btn_decrypt(const char* file_name, unsigned int password);
+
+// btn_password_from_string will return a password number from the givin
+// string, and the len of the string. Please keep the password short.
 unsigned int btn_password_from_string(const char* password_str, int password_len);
 
 //***********************************************
 // Internal functions, but you can also use them
 //***********************************************
+
 int btn_strcmp(const char* str1, const char* str2);
-void btn_memcpy(void *dest, const void *src, size_t n);
+
+// btn_strncpy will copy n bytes from src to dest.
+void btn_strncpy(void *dest, const void *src, size_t n);
+
 // btn_strcpy will copy src to dest. src should be a null terminated string.
 char* btn_strcpy(char* dest, const char* src);
 
@@ -168,7 +186,7 @@ int btn_encrypt(const char* input_file, unsigned int password) {
   btn_header header;
 
   // Set the BTN magic header and version
-  btn_memcpy(header.btn_magic, BTN_MAGIC, 10); // 10 bytes for the header identifier
+  btn_strncpy(header.btn_magic, BTN_MAGIC, 10); // 10 bytes for the header identifier
   btn_strcpy(header.btn_version, BTN_VERSION);
   btn_strcpy(header.btn_message, "");
 
@@ -354,7 +372,7 @@ int btn_strcmp(const char* str1, const char* str2) {
   return *(const unsigned char*)str1 - *(const unsigned char*)str2;
 }
 
-void btn_memcpy(void *dest, const void *src, size_t n) {
+void btn_strncpy(void *dest, const void *src, size_t n) {
   char *csrc = (char *)src;
   char *cdest = (char *)dest;
 
@@ -374,7 +392,6 @@ char* btn_strcpy(char* dest, const char* src) {
     dest++;
     src++;
   }
-
   *dest = '\0';
 
   return ptr;
