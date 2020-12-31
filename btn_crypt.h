@@ -1,7 +1,7 @@
 // Created by: WestleyR
 // Email: westleyr@nym.hush.com
 // Url: https://github.com/WestleyR/btn-crypt
-// Last modified date: 2020-12-29
+// Last modified date: 2020-12-30
 // See: BTN_CRYPT_VERSION for the current version.
 //
 // This file is licensed under the terms of
@@ -41,7 +41,7 @@
 
 # CHANGELOG
 
-### v1.0.0 - 2020-12-29 (yet to be released)
+### v1.0.0 - 2020-12-30 (yet to be released)
 Init release.
 
 
@@ -55,6 +55,9 @@ Init release.
  - [ ] Refactor the code
 
 */
+
+#ifndef BTN_CRYPT_INCLUDE_H
+#define BTN_CRYPT_INCLUDE_H
 
 #include <stdio.h>
 
@@ -92,6 +95,8 @@ int btn_strcmp(const char* str1, const char* str2);
 void btn_memcpy(void *dest, const void *src, size_t n);
 // btn_strcpy will copy src to dest. src should be a null terminated string.
 char* btn_strcpy(char* dest, const char* src);
+
+#endif // BTN_CRYPT_INCLUDE_H
 
 //*******************
 // The implementation
